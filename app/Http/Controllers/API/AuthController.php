@@ -1,10 +1,12 @@
 <?php
 namespace App\Http\Controllers\API;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Password;
 use Validator;
 
 /**
@@ -88,7 +90,7 @@ class AuthController extends Controller
     /**
      * login api
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function login(){
         if(Auth::attempt(['email' => request('email'), 'password' => request('password')])){
@@ -113,7 +115,7 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
         if ($validator->fails()) {
-            return response()->json(['error'=>$validator->errors()], 401);
+            return response()->json(['error'=>$validator->errors()], 400);
         }
         $input = $request->all();
         $input['password'] = bcrypt($input['password']);
@@ -123,10 +125,56 @@ class AuthController extends Controller
         event(new Registered($user));
         return response()->json(['success'=>$success], $this-> successStatus);
     }
-    /**
-     * details api
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function forgotPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['error'=>$validator->errors()], 400);
+        }
+        $email = $request->only('email');
+        try {
+            $status = Password::sendResetLink($email);
+            switch ($status) {
+                case Password::RESET_LINK_SENT:
+                    return response()->json(array("status" => 200, "message" => trans($status), "data" => array()));
+                case Password::INVALID_USER:
+                    return response()->json(array("status" => 400, "message" => trans($status), "data" => array()));
+            }
+        } catch (\Swift_TransportException $ex) {
+            $arr = array("status" => 400, "message" => $ex->getMessage(), "data" => []);
+        } catch (Exception $ex) {
+            $arr = array("status" => 400, "message" => $ex->getMessage(), "data" => []);
+        }
+        return response()->json($arr);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['error'=>$validator->errors()], 400);
+        }
+        $input = $request->all();
+        $status = Password::reset(
+            $request->only('email', 'password', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => bcrypt($password)
+                ]);
+                $user->save();
+                event(new PasswordReset($user));
+            }
+        );
+        return match ($status) {
+            Password::PASSWORD_RESET => response()->json(array("status" => 200, "message" => trans($status), "data" => array())),
+            default => response()->json(array("status" => 400, "message" => trans($status), "data" => array())),
+        };
+        }
 
 }

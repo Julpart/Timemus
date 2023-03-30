@@ -15,62 +15,36 @@ class UserController extends Controller
     }
 
     public function show($id){
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(['error'=>'The requested user was not found'], 404);
-        }else{
-            return response()->json(['success'=>$user], $this-> successStatus);
-        }
+        $user = User::findOrFail($id);
+        $projects = $user->projects()->paginate(10);
+        $created_tasks = $user->createdTasks()->paginate(10);
+        $assigned_tasks = $user->assignedTasks()->paginate(10);
+        $success['user'] = $user;
+        $success['projects'] = $projects;
+        $success['created_tasks'] = $created_tasks;
+        $success['assigned_tasks'] = $assigned_tasks;
+        return response()->json(['success'=>$success], $this-> successStatus);
     }
     public function update(Request $request,$id){
         $input = $request->all();
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(['error'=>'The requested user was not found'], 404);
-        }else{
-            foreach ($input as $key => $value){
-                if($key == 'email'){
-                    $validator = Validator::make([$key => $value], [
-                        'email' => 'required|email|unique:users',
-                    ]);
-                    if ($validator->fails()) {
-                        return response()->json(['error'=>$validator->errors()], 401);
-                    }
-                    $user->email = $value;
-                }
-                if($key == 'login'){
-                    $user->login = $value;
-                }
-                if($key == 'password'){
-                    $user->password = bcrypt($value);
-                }
-
-            }
-            $user->save();
-            return response()->json(['success'=>$user], $this-> successStatus);
+        $user = User::findOrFail($id);
+        $validator = Validator::make($input, [
+            'email' => 'unique:users,email,'.$id,
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['error'=>$validator->errors()], 400);
         }
-    }
+        $user->fill($input);
+        $user->save();
+        return response()->json(['success'=>$user], $this-> successStatus);
+        }
 
     public function destroy($id)
     {
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(['error'=>'The requested user was not found'], 404);
-        }else{
-            $user->projects()->detach();
-            $user->delete();
-            return response()->json(['success'=>'User deleted successfully'], $this-> successStatus);
-        }
-    }
-
-    public function projects($id){
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(['error'=>'The requested user was not found'], 404);
-        }else {
-            $projects = $user->projects()->paginate(10);
-            return response()->json(['success' => $projects], $this->successStatus);
-        }
+        $user = User::findOrFail($id);
+        $user->projects()->detach();
+        $user->delete();
+        return response()->json(['success'=>'User deleted successfully'], $this-> successStatus);
     }
 
 }

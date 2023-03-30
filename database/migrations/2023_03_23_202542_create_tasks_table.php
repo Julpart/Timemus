@@ -16,6 +16,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('description');
             $table->double('estimate_time');
+            $table->unsignedBigInteger('executor_id');
+            $table->unsignedBigInteger('project_id');
+            $table->unsignedBigInteger('creator_id');
             $table->foreign('executor_id')->references('id')->on('users');
             $table->foreign('project_id')->references('id')->on('projects');
             $table->foreign('creator_id')->references('id')->on('users');

@@ -31,33 +31,46 @@ class ProjectController extends Controller
         $project->save();
         $user = $request->user();
         $user->projects()->attach($project->id);
-        return response()->json(['message' => "Project created successfully"], $this-> successStatus);
+        return response()->json(['success' => $project], $this-> successStatus);
     }
 
     public function show($id){
-        $project = Project::find($id);
-        if(is_null($project)){
-            return response()->json(['error'=>'The requested project was not found'], 404);
-        }else{
-            return response()->json(['success'=>$project], $this-> successStatus);
-        }
+        $project = Project::findOrFail($id);
+        $users = $project->users()->paginate(10);
+        $tasks = $project->tasks()->paginate(10);
+        $success['project'] = $project;
+        $success['users'] = $users;
+        $success['tasks'] = $tasks;
+        return response()->json(['success'=>$success], $this-> successStatus);
     }
     public function update(Request $request,$id){
         $input = $request->all();
-        $project = Project::find($id);
-        if(is_null($project)){
-            return response()->json(['error'=>'The requested project was not found'], 404);
-        }else{
-            $validator = Validator::make($input, [
-                'name' => 'unique:projects',
+        $project = Project::findOrFail($id);
+        $validator = Validator::make($input, [
+                'name' => 'unique:projects,name,'.$id,
+                'users' => 'array',
             ]);
-            if ($validator->fails()) {
-                return response()->json(['error'=>$validator->errors()], 401);
+        if ($validator->fails()) {
+                return response()->json(['error'=>$validator->errors()], 400);
             }
-            $project->fill($input);
-            $project->save();
-            return response()->json(['success'=>$project], $this-> successStatus);
+        if(isset($input['users'])){
+            foreach ($input['users'] as $user) {
+                $obj = ProjectUser::where('user_id',$user)->where('project_id',$id)->first();
+                if(isset($obj)){
+                    $project->users()->detach($user);
+                }else{
+                    $project->users()->attach($user);
+                }
+            }
         }
+        $project->fill($input);
+        $project->save();
+        $users = $project->users()->paginate(10);
+        $tasks = $project->tasks()->paginate(10);
+        $success['project'] = $project;
+        $success['users'] = $users;
+        $success['tasks'] = $tasks;
+        return response()->json(['success'=>$success], $this-> successStatus);
     }
 
     public function destroy($id)
@@ -69,42 +82,6 @@ class ProjectController extends Controller
             $project->users()->detach();
             $project->delete();
             return response()->json(['success'=>'Project deleted successfully'], $this-> successStatus);
-        }
-    }
-
-    public function users($id){
-        $project = Project::find($id);
-        if(is_null($project)){
-            return response()->json(['error'=>'The requested project was not found'], 404);
-        }else {
-            $users = $project->users()->paginate(10);
-            return response()->json(['success' => $users], $this->successStatus);
-        }
-    }
-
-    public function addUsers(Request $request,$id){
-        $project = Project::find($id);
-        if(is_null($project)){
-            return response()->json(['error'=>'The requested project was not found'], 404);
-        }else {
-            $input = $request->all();
-            $validator = Validator::make($input, [
-                'users' => 'array',
-            ]);
-            if ($validator->fails()) {
-                return response()->json(['error'=>$validator->errors()], 401);
-            }
-            $users = $input['users'];
-            foreach ($users as $item){
-                $user = User::findOrFail($item);
-                $obj = ProjectUser::where('user_id',$item)->where('project_id',$id)->first();
-                if(is_null($obj)){
-                    $user->projects()->attach($id);
-                }else{
-                    return response()->json(['error'=>'user '.$item.' is already in the project'], 401);
-                }
-            }
-            return response()->json(['message' => 'Users add in the project'], $this->successStatus);
         }
     }
 }

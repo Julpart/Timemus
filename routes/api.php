@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\API\ProjectController;
+use App\Http\Controllers\API\TagController;
+use App\Http\Controllers\API\TaskController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\VerifyEmailController;
 use Illuminate\Http\Request;
@@ -20,8 +22,11 @@ use App\Http\Controllers\API\AuthController;
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 
+Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('guest')->name('password.reset');
+
 Route::get('/email/verify', function () {
-    return response()->json(['message'=>'You can do it'], 200);
+    return response()->json(['message'=>'Verification link sent'], 200);
 })->middleware(['auth:api'])->name('verification.notice');
 
 // Verify email
@@ -44,8 +49,6 @@ Route::group(['middleware' => ['auth:api','verified']], function(){
     Route::put('/users/{id}',[UserController::class,'update']);
     Route::delete('/users/{id}',[UserController::class,'destroy']);
 
-    Route::get('/users/{id}/projects',[UserController::class,'projects']);
-
     //CRUD project todo объединить роуты
     Route::get('/projects',[ProjectController::class,'index']);
     Route::post('/projects',[ProjectController::class,'store']);
@@ -53,7 +56,14 @@ Route::group(['middleware' => ['auth:api','verified']], function(){
     Route::put('/projects/{id}',[ProjectController::class,'update']);
     Route::delete('/projects/{id}',[ProjectController::class,'destroy']);
 
-    Route::get('/projects/{id}/users',[ProjectController::class,'users']);
-    Route::post('/projects/{id}/add',[ProjectController::class,'addUsers']);
+    //CRUD task
+    Route::get('/tasks',[TaskController::class,'index']);
+    Route::post('/tasks',[TaskController::class,'store']);
+    Route::get('/tasks/{id}',[TaskController::class,'show']);
+    Route::put('/tasks/{id}',[TaskController::class,'update']);
+    Route::delete('/tasks/{id}',[TaskController::class,'destroy']);
+
+    Route::get('/tags',[TagController::class,'index']);
+    Route::get('/tags/{id}',[TagController::class,'show']);
 });
 
