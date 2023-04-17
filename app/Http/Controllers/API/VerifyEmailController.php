@@ -13,6 +13,6 @@ class VerifyEmailController extends Controller
     public function verifyEmail(\Illuminate\Foundation\Auth\EmailVerificationRequest $request)
     {
         $request->fulfill();
-        return response()->json(['code' => 200, 'message' => "Verified successfully"], 200);
+        return response()->json(['success' => "Verified successfully"], 200);
     }
 }

@@ -21,12 +21,13 @@ use App\Http\Controllers\API\AuthController;
 
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
+Route::get('logout', [AuthController::class, 'logout'])->middleware(['auth:api']);
 
 Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('guest')->name('password.reset');
 
 Route::get('/email/verify', function () {
-    return response()->json(['message'=>'Verification link sent'], 200);
+    return response()->json(['success'=>'Verification link sent'], 200);
 })->middleware(['auth:api'])->name('verification.notice');
 
 // Verify email
@@ -48,6 +49,7 @@ Route::group(['middleware' => ['auth:api','verified']], function(){
     Route::get('/users/{id}',[UserController::class,'show']);
     Route::put('/users/{id}',[UserController::class,'update']);
     Route::delete('/users/{id}',[UserController::class,'destroy']);
+    Route::post('/users/{id}',[UserController::class,'loadAvatar']);
 
     //CRUD project todo объединить роуты
     Route::get('/projects',[ProjectController::class,'index']);

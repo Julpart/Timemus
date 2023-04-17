@@ -50,10 +50,24 @@ return [
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
+            'url' => env('AWS_URL','https://hb.bizmrg.com'),
+            'endpoint' => env('AWS_ENDPOINT', 'https://hb.bizmrg.com'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
+        ],
+
+        'minio' => [
+            'driver' => 's3',
+            'key' => env('MINIO_ACCESS_KEY'),
+            'secret' => env('MINIO_SECRET_KEY'),
+            'endpoint' => env('MINIO_ENDPOINT'),
+            'region' => env('MINIO_REGION'),
+            'bucket' => env('MINIO_BUCKET'),
+            'url' => env('MINIO_ENDPOINT'),
+            'options' => [
+                'use_path_style_endpoint' => true,
+                'ssl' => env('MINIO_SSL', false),
+            ],
         ],
 
     ],

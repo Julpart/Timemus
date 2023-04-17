@@ -10,4 +10,8 @@ class ProjectUser extends Pivot
 {
     use HasFactory;
     public $incrementing = true;
+    public $timestamps = false;
+    protected $fillable = [
+        'role_id',
+    ];
 }
